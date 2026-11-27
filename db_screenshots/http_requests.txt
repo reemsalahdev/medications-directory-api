@@ -1,0 +1,77 @@
+# 1. Login and Get Token
+$response = Invoke-WebRequest -Uri http://localhost:3010/api/auth/login `
+  -Method POST `
+  -Headers @{ "Content-Type" = "application/json" } `
+  -Body '{ "email": "admin@medications.com", "password": "change-me" }'
+
+$TOKEN = ($response.Content | ConvertFrom-Json).token
+
+# 2. Create Medication
+$medicationBody = '{
+  "name": "Ibuprofen",
+  "manufacturer": "AltPharma",
+  "category": "Pain Relief",
+  "status": "available",
+  "description": "Used to reduce fever and treat pain or inflammation.",
+  "activeIngredient": "Ibuprofen",
+  "dosageForm": "Tablet",
+  "strength": "200mg"
+}'
+
+$response = Invoke-WebRequest -Uri http://localhost:3010/api/medications `
+  -Method POST `
+  -Headers @{ "Authorization" = "Bearer $TOKEN"; "Content-Type" = "application/json" } `
+  -Body $medicationBody
+
+$medId = ($response.Content | ConvertFrom-Json).medication._id
+
+# 3. Create Alternative for the Medication
+$alternativeBody = '{
+  "originalMedication": "' + $medId + '",
+  "name": "Ibuprofen",
+  "manufacturer": "HealWell Labs",
+  "priceRange": {
+    "min": 2.5,
+    "max": 5.0,
+    "currency": "EUR"
+  },
+  "activeIngredient": "Ibuprofen",
+  "dosageForm": "Tablet",
+  "strength": "400mg"
+}'
+
+$response = Invoke-WebRequest -Uri http://localhost:3010/api/alternatives `
+  -Method POST `
+  -Headers @{ "Authorization" = "Bearer $TOKEN"; "Content-Type" = "application/json" } `
+  -Body $alternativeBody
+
+$altId = ($response.Content | ConvertFrom-Json).alternative._id
+
+# 4. Create Pharmacy
+$pharmacyBody = '{
+  "name": "Downtown Pharmacy",
+  "location": {
+    "address": "123 Main Street",
+    "city": "Jenin",
+    "state": "Jenin",
+    "zipCode": "12345"
+  },
+  "contactInfo": {
+    "phone": "+970-000-000-000",
+    "email": "info@downtownpharmacy.ps"
+  },
+  "services": ["Prescription Filling", "Home Delivery"],
+  "isActive": true
+}'
+
+$response = Invoke-WebRequest -Uri http://localhost:3010/api/pharmacies `
+  -Method POST `
+  -Headers @{ "Authorization" = "Bearer $TOKEN"; "Content-Type" = "application/json" } `
+  -Body $pharmacyBody
+
+$pharmacyId = ($response.Content | ConvertFrom-Json).pharmacy._id
+
+# 5. Logout
+Invoke-WebRequest -Uri http://localhost:3010/api/auth/logout `
+  -Method POST `
+  -Headers @{ "Authorization" = "Bearer $TOKEN" }
